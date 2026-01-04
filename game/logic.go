@@ -2,7 +2,6 @@ package game
 
 import (
 	"errors"
-	
 )
 
 func ApplyMove(g *Game, playerID string, col int) error {
@@ -32,15 +31,22 @@ func ApplyMove(g *Game, playerID string, col int) error {
 	}
 
 	// 2. Determine Player Color
+	// FIX: Iterate through players to find the matching ID (since map keys are Usernames)
 	playerColor := 0
-	if p, ok := g.Players[playerID]; ok {
-		playerColor = p.Color
-	} else if playerID == "cpu" {
-		playerColor = 2 // CPU is always Yellow (2)
+	for _, p := range g.Players {
+		if p.ID == playerID {
+			playerColor = p.Color
+			break
+		}
 	}
 
+	// Fallback/Safety check
 	if playerColor == 0 {
-		return errors.New("player not found")
+		if playerID == "cpu" {
+			playerColor = 2
+		} else {
+			return errors.New("player not found")
+		}
 	}
 
 	// 3. Update Board
@@ -70,15 +76,6 @@ func ApplyMove(g *Game, playerID string, col int) error {
 	// 6. Switch Turn
 	// We need to find the ID of the OTHER player
 	nextTurn := ""
-	for id := range g.Players {
-		if id != playerID {
-			nextTurn = id
-			break
-		}
-	}
-	// Special case: If playing vs Bot, the players map keys are Usernames, but we need IDs.
-	// Actually, for the Bot game, we stored: g.Players[username] = p1, g.Players["cpu"] = bot
-	// So we iterate the values to find the other ID.
 	for _, p := range g.Players {
 		if p.ID != playerID {
 			nextTurn = p.ID
