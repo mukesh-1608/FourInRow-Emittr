@@ -1,8 +1,10 @@
 import { spawn } from "child_process";
 
-// CRITICAL: This is ONLY a wrapper to satisfy the Replit environment's entrypoint.
-// The backend is written in PURE GOLANG (main.go). 
-// NO application logic exists in this file.
+// THIS IS A REPLIT BOOTSTRAPPER.
+// THE ACTUAL BACKEND IS WRITTEN IN PURE GOLANG (main.go).
+// NODE.JS IS ONLY USED TO LAUNCH THE GO PROCESS.
+
+console.log("Launching Go Backend...");
 
 const go = spawn("go", ["run", "main.go"], { 
   stdio: "inherit"
