@@ -94,6 +94,9 @@ func (r *Repository) SaveGame(g *game.Game) {
         query := `
                 INSERT INTO games (game_id, player1, player2, winner, created_at, finished_at)
                 VALUES ($1, $2, $3, $4, $5, $6)
+                ON CONFLICT (game_id) DO UPDATE SET
+                        winner = EXCLUDED.winner,
+                        finished_at = EXCLUDED.finished_at
         `
         
         // Just use current time for timestamps if not tracked in game struct
