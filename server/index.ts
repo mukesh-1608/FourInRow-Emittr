@@ -1,21 +1,13 @@
 import { spawn } from "child_process";
 
-// This file is a lightweight wrapper to start the Go server
-// because the Replit environment expects 'npm run dev' -> 'tsx server/index.ts'.
-// The actual backend application logic is entirely in Go (main.go).
-
-console.log("Bootstrapping Go server...");
+// CRITICAL: This is ONLY a wrapper to satisfy the Replit environment's entrypoint.
+// The backend is written in PURE GOLANG (main.go). 
+// NO application logic exists in this file.
 
 const go = spawn("go", ["run", "main.go"], { 
-  stdio: "inherit",
-  env: process.env 
-});
-
-go.on("error", (err) => {
-  console.error("Failed to start Go server:", err);
+  stdio: "inherit"
 });
 
 go.on("close", (code) => {
-  console.log(`Go server exited with code ${code}`);
   process.exit(code ?? 0);
 });

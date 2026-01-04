@@ -2,42 +2,145 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Connect 4 Bot & Reconnect Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect 4 - Battle the Bot</title>
     <style>
-        body { font-family: monospace; padding: 20px; }
-        #log { border: 1px solid #ccc; padding: 10px; height: 150px; overflow-y: scroll; background: #f0f0f0; margin-top: 20px; }
-        .board { display: grid; grid-template-columns: repeat(7, 50px); gap: 5px; background: #00f; padding: 10px; width: fit-content; }
-        .cell { width: 50px; height: 50px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .p1 { background: #f00; }
-        .p2 { background: #ff0; }
-        .controls { margin-bottom: 20px; }
+        :root {
+            --bg-color: #1a1a2e;
+            --board-color: #0f3460;
+            --cell-bg: #16213e;
+            --p1-color: #e94560;
+            --p2-color: #f7d100;
+            --text-color: #ffffff;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        h1 { margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        .controls { margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: var(--board-color);
+            color: white;
+            border: 2px solid #00d2ff;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        button:hover { background-color: #00d2ff; color: var(--bg-color); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .game-container { position: relative; }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(7, 60px);
+            grid-template-rows: repeat(6, 60px);
+            gap: 10px;
+            background-color: var(--board-color);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 4px solid #00d2ff;
+        }
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: var(--cell-bg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            box-shadow: inset 0 4px 8px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+        .cell:hover { transform: scale(1.05); }
+        .disc {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            transform: translateY(-100vh);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .disc.visible { transform: translateY(0); }
+        .p1 { background: radial-gradient(circle at 30% 30%, #ff4d6d, #800e2b); box-shadow: 0 4px 10px rgba(233, 69, 96, 0.5); }
+        .p2 { background: radial-gradient(circle at 30% 30%, #fff200, #b8860b); box-shadow: 0 4px 10px rgba(247, 209, 0, 0.5); }
+        
+        #status-indicator {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.1);
+        }
+        #log {
+            margin-top: 20px;
+            width: 480px;
+            height: 100px;
+            overflow-y: auto;
+            font-size: 12px;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .winning-cell {
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1.05); }
+            50% { transform: scale(1.15); box-shadow: 0 0 20px white; }
+            100% { transform: scale(1.05); }
+        }
     </style>
 </head>
 <body>
-    <h1>Connect 4 Bot & Reconnect Test (Step 3)</h1>
+    <h1>CONNECT 4</h1>
+    
     <div class="controls">
-        <button onclick="connect('test-player-1')">Connect as Human</button>
-        <button onclick="disconnect()">Disconnect (Simulate)</button>
-        <span id="status">Disconnected</span>
-        <span id="turn"></span>
+        <button id="connect-btn" onclick="connect()">Connect</button>
+        <button id="reset-btn" onclick="resetGame()" disabled>Reset Game</button>
+        <div id="conn-status" style="color: #ff4d6d;">● Disconnected</div>
     </div>
 
-    <div id="board" class="board">
-        <!-- Cells generated by JS -->
+    <div class="game-container">
+        <div id="board" class="board">
+            <!-- 6 rows x 7 cols = 42 cells -->
+        </div>
     </div>
 
+    <div id="status-indicator">Ready to play</div>
+    
     <div id="log"></div>
 
     <script>
         let ws;
         const boardEl = document.getElementById('board');
+        const statusEl = document.getElementById('status-indicator');
+        const connStatusEl = document.getElementById('conn-status');
+        const resetBtn = document.getElementById('reset-btn');
+        const connectBtn = document.getElementById('connect-btn');
         let myPlayerId = 'test-player-1';
+        let isProcessing = false;
 
-        // Init board UI
+        // Correct grid layout: 0-41
+        // Row 0 is top, Row 5 is bottom.
+        // We render row-by-row: 0,0 0,1 ... 0,6 then 1,0 ...
         for (let r = 0; r < 6; r++) {
             for (let c = 0; c < 7; c++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
+                cell.id = `cell-${r}-${c}`;
                 cell.dataset.col = c;
                 cell.onclick = () => sendMove(c);
                 boardEl.appendChild(cell);
@@ -46,75 +149,89 @@
 
         function log(msg) {
             const div = document.getElementById('log');
-            div.innerHTML += `<div>${new Date().toLocaleTimeString()} - ${msg}</div>`;
-            div.scrollTop = div.scrollHeight;
+            div.innerHTML = `<div>${new Date().toLocaleTimeString()} - ${msg}</div>` + div.innerHTML;
         }
 
-        function connect(playerId) {
-            if (ws) {
-                 ws.close(); // Clean close previous
-            }
-            myPlayerId = playerId;
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) return;
             
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            // Add player param to simulate identity
-            const wsUrl = `${protocol}//${window.location.host}/ws?player=${playerId}`;
+            const wsUrl = `${protocol}//${window.location.host}/ws?player=${myPlayerId}`;
             
             ws = new WebSocket(wsUrl);
             
             ws.onopen = () => {
-                document.getElementById('status').innerText = "Connected";
-                log("Connected as " + playerId);
+                connStatusEl.style.color = "#00d2ff";
+                connStatusEl.innerText = "● Connected";
+                connectBtn.disabled = true;
+                resetBtn.disabled = false;
+                log("Connected to server");
             };
             
             ws.onmessage = (event) => {
                 const msg = JSON.parse(event.data);
-                // log("Rx: " + msg.type);
                 
                 if (msg.type === 'update') {
                     renderBoard(msg.payload.board);
-                    document.getElementById('turn').innerText = "Turn: " + msg.payload.currentTurn;
-                    if (msg.payload.status === 'finished') {
-                        alert("Game Over! Winner: " + msg.payload.winner);
-                    }
+                    updateStatus(msg.payload);
                 } else if (msg.type === 'error') {
-                    alert("Error: " + msg.payload);
+                    log("Error: " + msg.payload);
+                    alert(msg.payload);
                 } else if (msg.type === 'game_over') {
-                     alert("Game Over! Winner: " + msg.payload.winner + (msg.payload.reason ? " ("+msg.payload.reason+")" : ""));
+                    log("Game Over: " + msg.payload.winner);
+                    statusEl.innerText = "GAME OVER: " + (msg.payload.winner === 'draw' ? "DRAW" : msg.payload.winner.toUpperCase() + " WINS!");
                 }
             };
             
-            ws.onerror = (err) => log("Error: " + err);
             ws.onclose = () => {
-                document.getElementById('status').innerText = "Disconnected";
-                log("Disconnected");
-            }
+                connStatusEl.style.color = "#ff4d6d";
+                connStatusEl.innerText = "● Disconnected";
+                connectBtn.disabled = false;
+                resetBtn.disabled = true;
+                log("Connection lost");
+                ws = null;
+            };
         }
-        
-        function disconnect() {
-            if (ws) ws.close();
+
+        function resetGame() {
+            if (!ws) return;
+            ws.send(JSON.stringify({ type: 'reset', payload: {} }));
+            log("Requested game reset");
         }
 
         function sendMove(col) {
-            if (!ws || ws.readyState !== WebSocket.OPEN) return;
-            const msg = {
+            if (!ws || ws.readyState !== WebSocket.OPEN || isProcessing) return;
+            ws.send(JSON.stringify({
                 type: 'move',
                 payload: { column: parseInt(col) }
-            };
-            ws.send(JSON.stringify(msg));
+            }));
         }
 
         function renderBoard(grid) {
-            const cells = document.querySelectorAll('.cell');
-            cells.forEach(c => c.className = 'cell'); // reset
-            
             for (let r = 0; r < 6; r++) {
                 for (let c = 0; c < 7; c++) {
+                    const cell = document.getElementById(`cell-${r}-${c}`);
                     const val = grid[r][c];
-                    const idx = r * 7 + c;
-                    if (val === 1) cells[idx].classList.add('p1');
-                    if (val === 2) cells[idx].classList.add('p2');
+                    
+                    // Clear existing disc
+                    cell.innerHTML = '';
+                    
+                    if (val !== 0) {
+                        const disc = document.createElement('div');
+                        disc.className = `disc visible ${val === 1 ? 'p1' : 'p2'}`;
+                        cell.appendChild(disc);
+                    }
                 }
+            }
+        }
+
+        function updateStatus(game) {
+            if (game.status === 'finished') {
+                statusEl.innerText = "WINNER: " + game.winner.toUpperCase();
+                statusEl.style.color = game.winner === 'test-player-1' ? "#e94560" : "#f7d100";
+            } else {
+                statusEl.innerText = game.currentTurn === myPlayerId ? "YOUR TURN" : "BOT IS THINKING...";
+                statusEl.style.color = game.currentTurn === myPlayerId ? "#e94560" : "#f7d100";
             }
         }
     </script>
