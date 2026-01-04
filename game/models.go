@@ -5,36 +5,28 @@ import (
 	"time"
 )
 
-// Player represents a connected user
 type Player struct {
 	ID              string          `json:"id"`
 	Username        string          `json:"username"`
-	Color           int             `json:"color"` // 1 or 2
-	Conn            *websocket.Conn `json:"-"`     // WebSocket connection
+	Color           int             `json:"color"` 
+	Conn            *websocket.Conn `json:"-"`     
 	IsBot           bool            `json:"isBot"`
 	IsConnected     bool            `json:"isConnected"`
-	DisconnectTimer *time.Timer     `json:"-"`
+	DisconnectTimer *time.Timer     `json:"-"` // Needed for 30s timeout
+	GameID          string          `json:"gameId"`
 }
 
-// Game represents the state of a Connect Four game
 type Game struct {
 	ID          string             `json:"id"`
 	Board       [6][7]int          `json:"board"`
 	Players     map[string]*Player `json:"players"`
-	CurrentTurn string             `json:"currentTurn"` // Player ID
-	Status      string             `json:"status"`      // "waiting", "playing", "finished"
+	CurrentTurn string             `json:"currentTurn"` 
+	Status      string             `json:"status"`      
 	Winner      string             `json:"winner,omitempty"`
+	CreatedAt   time.Time          `json:"-"`
 }
 
-// Move represents a player's action
-type Move struct {
-	GameID   string `json:"gameId"`
-	PlayerID string `json:"playerId"`
-	Column   int    `json:"column"`
-}
-
-// WSMessage represents the standard message format
 type WSMessage struct {
-	Type    string      `json:"type"` // "join", "start", "move", "update", "game_over", "error", "opponent_disconnected"
+	Type    string      `json:"type"` 
 	Payload interface{} `json:"payload"`
 }
