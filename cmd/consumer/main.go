@@ -21,10 +21,10 @@ type GameEvent struct {
 
 // In-Memory Stats
 var (
-	gameStartTimes = make(map[string]int64) 
+	gameStartTimes = make(map[string]int64)
 	durations      = []float64{}
 	winCounts      = make(map[string]int)
-	gamesPerHour   = make(map[string]int) 
+	gamesPerHour   = make(map[string]int)
 )
 
 func main() {
@@ -80,20 +80,26 @@ func processMessage(value []byte) {
 	timeKey := t.Format("2006-01-02 15:00")
 	gamesPerHour[timeKey]++
 
+	// --- NEW: Print the Games Per Hour Stat ---
+	fmt.Printf("📈 Games in hour %s: %d\n", timeKey, gamesPerHour[timeKey])
+	// ------------------------------------------
+
 	switch event.Type {
 	case "game_started":
 		gameStartTimes[event.GameID] = event.Timestamp
-		fmt.Printf("\n[EVENT] Game Started: %s (Type: %v)\n", event.GameID, event.Payload)
+		fmt.Printf("[EVENT] Game Started: %s (Type: %v)\n", event.GameID, event.Payload)
 
 	case "game_finished":
 		// Calculate Duration
 		if startTime, exists := gameStartTimes[event.GameID]; exists {
 			duration := float64(event.Timestamp - startTime)
 			durations = append(durations, duration)
-			delete(gameStartTimes, event.GameID) 
-			
+			delete(gameStartTimes, event.GameID)
+
 			var total float64
-			for _, d := range durations { total += d }
+			for _, d := range durations {
+				total += d
+			}
 			avg := total / float64(len(durations))
 			fmt.Printf("⏱️  Game Over. Duration: %.0fs | Avg Duration: %.1fs\n", duration, avg)
 		}
