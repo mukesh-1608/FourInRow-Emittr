@@ -1,74 +1,140 @@
-# Four-in-Row: Real-time Multiplayer Game Platform
+# Four-in-Row Game Platform
 
-![Go](https://img.shields.io/badge/Backend-Go-00ADD8?style=flat&logo=go)
-![React](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61DAFB?style=flat&logo=react)
-![Kafka](https://img.shields.io/badge/Data-Apache%20Kafka-231F20?style=flat&logo=apachekafka)
-![Docker](https://img.shields.io/badge/Infra-Docker%20Compose-2496ED?style=flat&logo=docker)
-![TypeScript](https://img.shields.io/badge/Language-TypeScript-3178C6?style=flat&logo=typescript)
+## Project Overview
 
-A production-ready, full-stack implementation of the classic "Four in a Row" game. This project demonstrates a scalable architecture featuring real-time WebSocket communication, an event-driven analytics pipeline, and a heuristic-based CPU opponent.
+Four-in-Row is a full-stack, real-time multiplayer web application designed to demonstrate scalable software architecture and event-driven design patterns. The system allows users to compete against one another or challenge a heuristic-based CPU opponent.
 
-> **Live Demo:** [[Insert Link Here](https://fourinrow-emittr.onrender.com)] *(Optional: Add link if hosted)*
+Beyond standard gameplay, the application integrates an analytics pipeline using Apache Kafka to stream game events, facilitating data-driven insights. The infrastructure is fully containerized to ensure consistent deployment environments.
+
+**Live Deployment:** https://fourinrow-emittr.onrender.com
 
 ---
 
-## 🏗 System Architecture
+## System Architecture
 
-This project goes beyond a simple game by implementing an event-driven architecture suitable for data analysis and high-concurrency environments.
+The solution is architected as a cohesive distributed system comprising the following core components:
 
-### High-Level Design
-* **Frontend (SPA):** Built with React, TypeScript, and Tailwind CSS (Shadcn/UI). Serves as a single-page application managed by the Go router.
-* **Game Server (Go):** Handles game state, validation, matchmaking, and WebSocket connections.
-* **Event Bus (Kafka):** The application acts as a Producer, emitting game events (`GameStart`, `MoveMade`, `GameEnd`) to a Kafka topic (`game-events`) for downstream processing.
-* **Bot Engine:** A server-side CPU opponent using a priority-based heuristic algorithm.
-
----
-
-## ✨ Key Features
-
-* **Real-time Multiplayer:** Instant state synchronization using WebSockets.
-* **Intelligent Bot:** Server-side CPU opponent that calculates best moves based on win/block heuristics (`game/bot`).
-* **Event Streaming:** Integrated `IBM/sarama` Kafka producer to stream game metrics for analytics.
-* **Fallback Mechanisms:** Intelligent fallback to a "Stub Producer" if the Kafka broker is unreachable (Resiliency).
-* **Production Grade UI:** polished interface using `radix-ui` primitives and Tailwind CSS.
-* **Containerization:** Full `docker-compose` setup for zookeeper, kafka, and the application services.
+* **Frontend Client:** A Single Page Application (SPA) built with React and TypeScript. It utilizes WebSockets for low-latency state synchronization and provides a responsive user interface styled with Tailwind CSS and Radix UI.
+* **Game Server:** Developed in Go (Golang), this component acts as the central orchestrator. It manages WebSocket connections, validates game logic, enforces rules, and serves static assets.
+* **Event Bus:** Apache Kafka is employed as the message broker. The server acts as a producer, emitting granular events (e.g., `GameStart`, `MoveMade`, `GameEnd`) to the `game-events` topic.
+* **Infrastructure:** The entire stack, including Zookeeper and Kafka, is orchestrated via Docker Compose to simulate a production-ready environment.
 
 ---
 
-## 🛠 Tech Stack
+## Technical Stack
 
 ### Backend
-* **Language:** Golang (1.22+)
-* **Communication:** WebSockets (Real-time state), HTTP (REST API)
-* **Streaming:** Apache Kafka (via Sarama library)
-* **Architecture:** Hexagonal-inspired (handlers, service logic, repository, analytics layers isolated).
+* **Language:** Go (1.22+)
+* **Transport Protocols:** WebSocket (Real-time communication), HTTP (REST API)
+* **Message Broker:** Apache Kafka (via IBM/Sarama library)
+* **Architecture:** Hexagonal/Port-and-Adapter style separating core logic from transport layers.
 
 ### Frontend
-* **Framework:** React 18 + Vite
+* **Framework:** React 18
+* **Build Tool:** Vite
 * **Language:** TypeScript
-* **Styling:** Tailwind CSS + Shadcn/UI
-* **State:** React Query (Tanstack)
+* **State Management:** React Query (Tanstack)
+* **Styling:** Tailwind CSS
 
-### DevOps
-* **Containerization:** Docker & Docker Compose
-* **Build Pipeline:** Multi-stage builds (Frontend build embedded into Go binary).
+### DevOps & Infrastructure
+* **Containerization:** Docker
+* **Orchestration:** Docker Compose
+* **Cloud Compatibility:** Environment-variable driven configuration for platforms like Render or Heroku.
 
 ---
 
-## 🚀 Getting Started
+## Key Features
 
-The easiest way to run the application is via Docker Compose, which spins up the Kafka broker, Zookeeper, and the Game Server.
+1.  **Real-Time Multiplayer Synchronization**
+    The application utilizes persistent WebSocket connections to synchronize game state instantly between clients, ensuring a seamless user experience without polling overhead.
+
+2.  **Heuristic Bot Engine**
+    The single-player mode features a server-side CPU opponent. The bot logic evaluates the board using a priority-based heuristic algorithm:
+    * **Victory Detection:** Takes immediate winning moves.
+    * **Threat Blocking:** Identifies and blocks imminent player victories.
+    * **Strategic Placement:** Prioritizes center columns to maximize future opportunities.
+
+3.  **Fault-Tolerant Analytics**
+    The system implements a resilient analytics module. It attempts to connect to a Kafka broker for event streaming. If the broker is unreachable (e.g., during local development without Docker), the system automatically degrades to a "Stub Producer" that logs events to standard output, preventing application failure.
+
+4.  **SPA Routing in Go**
+    The backend implements a custom file server handler to support client-side routing. This ensures that deep links work correctly by serving the `index.html` entry point for unknown routes while still serving static assets efficiently.
+
+---
+
+## Installation and Setup
 
 ### Prerequisites
-* Docker & Docker Compose
-* Node.js (for local frontend dev only)
-* Go 1.22+ (for local backend dev only)
+* Docker and Docker Compose (Recommended)
+* Go 1.22 or higher (For local backend development)
+* Node.js and npm (For local frontend development)
 
-### Running with Docker (Recommended)
-```bash
-# Clone the repository
-git clone [https://github.com/your-username/four-in-row.git](https://github.com/your-username/four-in-row.git)
-cd four-in-row
+### Option 1: Docker Compose (Recommended)
+This method provisions the Game Server, Apache Kafka, and Zookeeper in isolated containers.
 
-# Start all services (Kafka, Zookeeper, App)
-docker-compose up --build
+1.  Clone the repository:
+    ```bash
+    git clone <repository-url>
+    cd fourinrow-emittr
+    ```
+
+2.  Start the services:
+    ```bash
+    docker-compose up --build
+    ```
+
+3.  Access the application:
+    Navigate to `http://localhost:5000` in your web browser.
+
+### Option 2: Manual Local Execution
+If you wish to run the services independently:
+
+1.  **Start Infrastructure:**
+    Launch Kafka and Zookeeper (or ensure a local instance is running):
+    ```bash
+    docker-compose up -d zookeeper kafka
+    ```
+
+2.  **Build Frontend:**
+    ```bash
+    cd client
+    npm install
+    npm run build
+    cd ..
+    ```
+
+3.  **Start Backend:**
+    ```bash
+    # Point to the local Kafka broker
+    export KAFKA_BROKER=localhost:9092
+    go run main.go
+    ```
+
+---
+
+## Configuration
+
+The application behavior can be customized using the following environment variables:
+
+| Variable | Default Value | Description |
+| :--- | :--- | :--- |
+| `PORT` | `5000` | The HTTP port on which the server listens. |
+| `KAFKA_BROKER` | `localhost:9092` | The address of the Kafka broker for analytics events. |
+
+---
+
+## Project Structure
+
+* `analytics/`: Contains the Kafka producer implementation and event schema definitions.
+* `client/`: Source code for the React frontend application.
+* `game/`: Encapsulates core game logic, state management models, and the bot algorithm.
+* `server/`: Handles HTTP routing, WebSocket upgrades, and API endpoints.
+* `db/`: Manages database connections and repository interfaces.
+* `cmd/`: Entry points for auxiliary services or consumers.
+* `main.go`: The primary entry point for the application.
+
+---
+
+## License
+
+This project is licensed under the MIT License.
