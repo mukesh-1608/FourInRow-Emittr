@@ -66,10 +66,23 @@ func handleDisconnect(username string) {
 
 	player := g.Players[username]
 	player.IsConnected = false
+	
+	// FIX 1: Broadcast immediately so the other player knows about the disconnection
+	BroadcastState(g)
+
 	player.DisconnectTimer = time.AfterFunc(30*time.Second, func() {
 		if !player.IsConnected {
 			g.Status = "finished"
-			g.Winner = "opponent"
+
+			// FIX 2: Set the Real Winner ID instead of generic "opponent"
+			// Find the player who is NOT the one that disconnected
+			for _, p := range g.Players {
+				if p.Username != username {
+					g.Winner = p.ID
+					break
+				}
+			}
+
 			BroadcastState(g)
 			HandleGameOver(g)
 		}
