@@ -36,21 +36,19 @@ jobs:
       # 1. Spin up Kafka and the Game Server
       - name: Build and Start Application
         run: |
-          # Start Kafka/Zookeeper using the NEW command (no hyphen)
           docker compose up -d
-          
-          # Build your game using the Dockerfile you uploaded
           docker build -t fourinrow-app .
-          
-          # Run your game on port 5000, using the host network to see Kafka
           docker run -d -p 5000:5000 -e KAFKA_BROKER=localhost:9092 --network host fourinrow-app
-          
           echo "Waiting for the game, server, and database to boot up..."
           sleep 45 
 
-      # 2. Unleash the automated hacker (OWASP ZAP) against the running app
+      # 2. Unlock the folder so ZAP can save its report
+      - name: Grant ZAP permission to write report
+        run: chmod 777 $GITHUB_WORKSPACE
+
+      # 3. Unleash the automated hacker (OWASP ZAP) against the running app
       - name: Run OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.10.0
         with:
-          target: 'http://localhost:5000' # Attacking the local temporary server
+          target: 'http://localhost:5000'
           fail_action: false
