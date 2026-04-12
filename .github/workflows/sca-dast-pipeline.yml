@@ -1,0 +1,50 @@
+name: DevSecOps Phase 2 - SCA & DAST
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  # ----------------------------------------------------
+  # JOB 1: SCA (The Ingredient Inspector)
+  # ----------------------------------------------------
+  sca-scanning:
+    name: Software Composition Analysis (SCA)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Trivy will scan your go.mod and package.json for vulnerable third-party libraries
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
+  # ----------------------------------------------------
+  # JOB 2: DAST (The Automated Hacker)
+  # ----------------------------------------------------
+  dast-scanning:
+    name: Dynamic Analysis (DAST)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. Spin up the temporary environment using your Docker Compose!
+      - name: Build and Start Application
+        run: |
+          docker-compose up -d
+          echo "Waiting for the game, server, and database to boot up..."
+          sleep 45 
+
+      # 2. Unleash the automated hacker (OWASP ZAP) against the running local app
+      - name: Run OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: 'http://localhost:5000' # Attacking the local temporary server
+          # We set this to false so it shows us the report without breaking the pipeline
+          fail_action: false
