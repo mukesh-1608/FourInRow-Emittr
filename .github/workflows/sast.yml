@@ -1,0 +1,14 @@
+name: 02 SAST Scanning
+on: [push, pull_request]
+
+jobs:
+  sast-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          # Scans Go, TS, and React code found in your repo
+          config: "p/default p/golang p/typescript p/react"
